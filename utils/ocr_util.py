@@ -1,4 +1,4 @@
-from libs.PPOCR_api import GetOcrApi
+from utils.PPOCR_api import GetOcrApi
 import os
 import time
 import logging
