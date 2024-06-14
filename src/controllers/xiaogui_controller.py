@@ -19,8 +19,8 @@ class XiaoGuiController(tk.Frame):
             for text_obj in ocr_text_list["data"]:
                 text_list.append(text_obj["text"])
         ocr_text = "".join(text_list)
-        logging.info("ocr_text %s", ocr_text)
+        logging.debug("ocr_text %s", ocr_text)
         xiao_gui_info = utils.map_util.find_xiao_gui_info(ocr_text)
-        logging.info("最终信息 %s", xiao_gui_info)
+        logging.debug("最终信息 %s", xiao_gui_info)
         return xiao_gui_info
 

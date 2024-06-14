@@ -54,7 +54,7 @@ def find_xiao_gui_info(ocr_text: string):
     # pattern = r"去(.*?)，(.*?)附近抓(.*?)鬼"
     # match = re.search(pattern, ocr_text)
     numbers = re.findall(r'\d+', ocr_text)
-    logging.info("字符串匹配信息 %s 坐标查找 %s", ocr_text, numbers)
+    logging.debug("字符串匹配信息 %s 坐标查找 %s", ocr_text, numbers)
     info = XiaoGui(ocr_text=ocr_text)
     if numbers is not None and 1 < len(numbers) < 4:
         if len(numbers) == 2:
@@ -64,11 +64,13 @@ def find_xiao_gui_info(ocr_text: string):
             info.x = int(numbers[1])
             info.y = int(numbers[2])
         info.map_name = remove_after_substring(ocr_text, numbers[0])
-        logging.info("地图子字符串 %s", info.map_name)
+        logging.debug("地图子字符串 %s", info.map_name)
     else:
-        logging.error("未找到怪物坐标匹配信息 %s 坐标查找 %s", ocr_text, numbers)
+        logging.debug("未找到怪物坐标匹配信息 %s 坐标查找 %s", ocr_text, numbers)
         return None
     set_position_area(info)
+    if info.map_info is None or len(info.map_info.name) == 0:
+        return None
     return info
 
 
@@ -81,11 +83,11 @@ def set_position_area(xiao_gui_info: XiaoGui):
                 xiao_gui_info.map_name = map_obj.name
                 break
     # map_info = map_infos[xiao_gui_info.map_name]
-    if xiao_gui_info.map_info is None:
-        logging.error("未找到地图信息 %s", xiao_gui_info)
+    if xiao_gui_info.map_info is None or len(xiao_gui_info.map_info.name) == 0:
+        logging.debug("未找到地图信息 %s", xiao_gui_info.map_name)
         return
     else:
-        logging.info("找到地图信息 %s", xiao_gui_info.map_info)
+        logging.debug("找到地图信息 %s", xiao_gui_info.map_info)
     #                 x<y    |   x > 150 and y > 150
     #                   2    |   1
     #               ------- x,y ---------

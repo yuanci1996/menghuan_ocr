@@ -5,6 +5,7 @@ from src.controllers.xiaogui_controller import XiaoGuiController
 from src.models.xiaogui import XiaoGui
 import base64
 import io
+from src import utils
 
 logger = logging.getLogger()
 
@@ -123,25 +124,68 @@ class XiaoGuiView(tk.Frame):
     def create_widgets(self):
         button_frame = tk.Frame(self)
         button_frame.pack()
-        self.show_button = tk.Button(button_frame, text="获取坐标", command=self.show_position)
+        self.show_button = tk.Button(button_frame, text="OCR获取坐标", command=self.show_position)
+        self.show_button.pack(side="left", padx=5, pady=5)
+        self.show_button = tk.Button(button_frame, text="手动生成坐标", command=self.build_position)
         self.show_button.pack(side="left", padx=5, pady=5)
         self.set_capture_region_button = tk.Button(button_frame, text="设置截图范围", command=self.show_set_capture_region)
         self.set_capture_region_button.pack(side="left", padx=5, pady=5)
 
-    def show_position(self):
-        self.capture()
-        xiao_gui_info = self.controller.show_position(image_to_base64(self._capture_label_image))
-        print(xiao_gui_info)
+        position_map_frame = tk.Frame(self)
+        position_map_frame.pack()
+        self.map_var = tk.StringVar(value="傲来国")
+        for map_name, map_info in utils.map_util.map_infos.items():
+            radio = tk.Radiobutton(position_map_frame, text=map_name, variable=self.map_var, value=map_name)
+            radio.pack(side="left", padx=5, pady=5)
 
+        position_frame = tk.Frame(self)
+        position_frame.pack()
+        self.x_entry = tk.Entry(position_frame)
+        self.x_entry.pack(side="left", padx=5, pady=5)
+        self.y_entry = tk.Entry(position_frame)
+        self.y_entry.pack(side="left", padx=5, pady=5)
+        validate_cmd = self.register(self.validate_input)
+        self.x_entry.config(validate="key", validatecommand=(validate_cmd, "%P"))
+        self.y_entry.config(validate="key", validatecommand=(validate_cmd, "%P"))
+
+    def show_position(self):
         if self.canvas is not None:
             self.canvas.destroy()
+        self.capture()
+        xiao_gui_info = self.controller.show_position(image_to_base64(self._capture_label_image))
         if xiao_gui_info is not None:
+            self.map_var.set(xiao_gui_info.map_info.name)
+            self.x_entry.delete(0, tk.END)
+            self.x_entry.insert(0, xiao_gui_info.x)
+            self.y_entry.delete(0, tk.END)
+            self.y_entry.insert(0, xiao_gui_info.y)
+
             # 绘制坐标轴
             image = draw_coordinate(xiao_gui_info)
             self.photo = ImageTk.PhotoImage(image)
             self.canvas = tk.Canvas(self, width=image.width, height=image.height)
             self.canvas.pack()
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
+
+    def build_position(self):
+        if self.canvas is not None:
+            self.canvas.destroy()
+        map_name = self.map_var.get()
+        x = self.x_entry.get()
+        y = self.y_entry.get()
+        if x is None or y is None or x == '' or y == '' or map_name is None or map_name == '':
+            return
+        xiao_gui_info = XiaoGui(x=int(x), y=int(y), map_name=map_name)
+        utils.map_util.set_position_area(xiao_gui_info)
+        if xiao_gui_info.map_info is None or len(xiao_gui_info.map_info.name) == 0:
+            return
+
+        # 绘制坐标轴
+        image = draw_coordinate(xiao_gui_info)
+        self.photo = ImageTk.PhotoImage(image)
+        self.canvas = tk.Canvas(self, width=image.width, height=image.height)
+        self.canvas.pack()
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
 
     def show_set_capture_region(self):
         self._master.iconify()
@@ -192,3 +236,10 @@ class XiaoGuiView(tk.Frame):
             self._capture_label.destroy()
         self._capture_label = tk.Label(self, image=self._capture_label_photo)
         self._capture_label.pack()
+
+    def validate_input(self, new_value):
+        # 验证函数，确保输入的是数字
+        if new_value.isdigit() or new_value == "":
+            return True
+        else:
+            return False
