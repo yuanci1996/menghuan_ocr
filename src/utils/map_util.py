@@ -23,13 +23,13 @@ map_infos = {'傲来国': Map(name="傲来国", names=["傲来国", "傲来", "�
                         image_path=os.path.join(project_root, "static\\images\\map\\jyc.png")),
              '江南野外': Map(name="江南野外", names=["江南野外", "江南", "南野外", "野外", "江", "南", "野"], width=160, height=120,
                          image_path=os.path.join(project_root, "static\\images\\map\\jnyw.png")),
-             '女儿村': Map(name="女儿村", names=["女儿村", "女儿", "儿村", "女", "儿"], width=130, height=144,
+             '女儿村': Map(name="女儿村", names=["女儿村", "女儿", "儿村", "儿"], width=130, height=144,
                         image_path=os.path.join(project_root, "static\\images\\map\\nec.png")),
              '普陀山': Map(name="普陀山", names=["普陀山", "普陀", "陀山", "普", "陀"], width=95, height=72,
                         image_path=os.path.join(project_root, "static\\images\\map\\pts.png")),
              '五庄观': Map(name="五庄观", names=["五庄观", "五庄", "庄观", "五", "庄"], width=100, height=75,
                         image_path=os.path.join(project_root, "static\\images\\map\\wzg.png")),
-             '西凉女国': Map(name="西凉女国", names=["西凉女国", "西凉", "凉女国", "西", "凉", "女国", "女"], width=163, height=124,
+             '西凉女国': Map(name="西凉女国", names=["西凉女国", "西凉", "凉女国", "西", "凉", "女国"], width=163, height=124,
                          image_path=os.path.join(project_root, "static\\images\\map\\xlng.png")),
              '朱紫国': Map(name="朱紫国", names=["朱紫国", "朱紫", "紫国", "朱", "紫"], width=191, height=120,
                         image_path=os.path.join(project_root, "static\\images\\map\\zzg.png"))
@@ -63,7 +63,7 @@ def find_xiao_gui_info(ocr_text: string):
         if len(numbers) == 3:
             info.x = int(numbers[1])
             info.y = int(numbers[2])
-        info.map_name = remove_after_substring(ocr_text, numbers[0])
+        info.map_name = remove_after_substring(ocr_text, str(info.x))
         logging.debug("地图子字符串 %s", info.map_name)
     else:
         logging.debug("未找到怪物坐标匹配信息 %s 坐标查找 %s", ocr_text, numbers)
