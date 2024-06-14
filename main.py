@@ -17,7 +17,7 @@ def main():
     #     print('请求失败，状态码:', response.status_code)
     main_window = ttk.Window()
     # root.geometry("1200x720")
-    # LogView(main)
+    # LogView(main_window)
     XiaoGuiView(main_window)
     main_window.mainloop()
 

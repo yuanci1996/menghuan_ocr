@@ -73,7 +73,6 @@ def draw_coordinate(xiao_gui_info: XiaoGui):
     x = xiao_gui_info.x / xiao_gui_info.map_info.scale_width + border_size
     y = xiao_gui_info.map_info.image_height + border_size - xiao_gui_info.y / xiao_gui_info.map_info.scale_height
     r = 50 / ((xiao_gui_info.map_info.scale_width + xiao_gui_info.map_info.scale_height) / 2)
-    print(x, y, r)
     position_area_draw.ellipse((x - r, y - r, x + r, y + r), outline="red", width=3)
     # 绘制区域象限
     if xiao_gui_info.position_area:

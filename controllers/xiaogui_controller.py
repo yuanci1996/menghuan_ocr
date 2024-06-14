@@ -12,7 +12,7 @@ class XiaoGuiController(tk.Frame):
 
     def show_position(self, image_base64):
         # 截取对应位置的图片
-        # ocr_text_list = self.ocr_util.ocr.run("E:\\test\\zuobiao.png")
+        # ocr_text_list = self.ocr_util.ocr.run(r"E:\test\mh\3.png")
         ocr_text_list = self.ocr_util.ocr.runBase64(image_base64)
         text_list = []
         if ocr_text_list["code"] == 100:
