@@ -1,8 +1,8 @@
 from PIL import Image, ImageTk, ImageDraw, ImageGrab
 import ttkbootstrap as tk
 import logging
-from controllers.xiaogui_controller import XiaoGuiController
-from models.xiaogui import XiaoGui
+from src.controllers.xiaogui_controller import XiaoGuiController
+from src.models.xiaogui import XiaoGui
 import base64
 import io
 
@@ -131,13 +131,13 @@ class XiaoGuiView(tk.Frame):
     def show_position(self):
         self.capture()
         xiao_gui_info = self.controller.show_position(image_to_base64(self._capture_label_image))
+        print(xiao_gui_info)
 
+        if self.canvas is not None:
+            self.canvas.destroy()
         if xiao_gui_info is not None:
             # 绘制坐标轴
             image = draw_coordinate(xiao_gui_info)
-
-            if self.canvas is not None:
-                self.canvas.destroy()
             self.photo = ImageTk.PhotoImage(image)
             self.canvas = tk.Canvas(self, width=image.width, height=image.height)
             self.canvas.pack()

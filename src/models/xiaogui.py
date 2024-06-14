@@ -1,4 +1,4 @@
-from models.map import Map
+from src.models.map import Map
 
 
 class XiaoGui:

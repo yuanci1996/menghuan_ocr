@@ -1,8 +1,7 @@
 # main.py
-from views.xiaogui_view import XiaoGuiView
-from views.log_view import LogView
+from src.views.log_view import LogView
+from src.views.xiaogui_view import XiaoGuiView
 import ttkbootstrap as ttk
-import requests
 
 
 def main():
@@ -17,7 +16,7 @@ def main():
     #     print('请求失败，状态码:', response.status_code)
     main_window = ttk.Window()
     # root.geometry("1200x720")
-    # LogView(main_window)
+    LogView(main_window)
     XiaoGuiView(main_window)
     main_window.mainloop()
 

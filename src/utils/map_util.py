@@ -3,8 +3,8 @@ import re
 import os
 import string
 
-from models.map import Map
-from models.xiaogui import XiaoGui
+from src.models.map import Map
+from src.models.xiaogui import XiaoGui
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_directory, os.pardir))
@@ -35,6 +35,8 @@ map_infos = {'傲来国': Map(name="傲来国", names=["傲来国", "傲来", "�
                         image_path=os.path.join(project_root, "static\\images\\map\\zzg.png"))
              }
 
+print("project_root = ", project_root)
+
 
 def remove_after_substring(main_string, sub_string):
     # 找到子字符串的位置
@@ -54,9 +56,13 @@ def find_xiao_gui_info(ocr_text: string):
     numbers = re.findall(r'\d+', ocr_text)
     logging.info("字符串匹配信息 %s 坐标查找 %s", ocr_text, numbers)
     info = XiaoGui(ocr_text=ocr_text)
-    if numbers is not None and len(numbers) > 1:
-        info.x = int(numbers[0])
-        info.y = int(numbers[1])
+    if numbers is not None and 1 < len(numbers) < 4:
+        if len(numbers) == 2:
+            info.x = int(numbers[0])
+            info.y = int(numbers[1])
+        if len(numbers) == 3:
+            info.x = int(numbers[1])
+            info.y = int(numbers[2])
         info.map_name = remove_after_substring(ocr_text, numbers[0])
         logging.info("地图子字符串 %s", info.map_name)
     else:
@@ -78,7 +84,8 @@ def set_position_area(xiao_gui_info: XiaoGui):
     if xiao_gui_info.map_info is None:
         logging.error("未找到地图信息 %s", xiao_gui_info)
         return
-    logging.info("找到地图信息 %s", xiao_gui_info.map_info)
+    else:
+        logging.info("找到地图信息 %s", xiao_gui_info.map_info)
     #                 x<y    |   x > 150 and y > 150
     #                   2    |   1
     #               ------- x,y ---------
