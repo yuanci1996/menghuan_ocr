@@ -87,6 +87,7 @@ def set_position_area(xiao_gui_info: XiaoGui):
         logging.debug("未找到地图信息 %s", xiao_gui_info.map_name)
         return
     else:
+        xiao_gui_info.desc = "可信度：100%"
         logging.debug("找到地图信息 %s", xiao_gui_info.map_info)
     #                 x<y    |   x > 150 and y > 150
     #                   2    |   1
@@ -107,8 +108,10 @@ def set_position_area(xiao_gui_info: XiaoGui):
             remove_list_value(position_area, [2, 1])
         if len(position_area) == 4:
             if xiao_gui_info.x < xiao_gui_info.y:
+                xiao_gui_info.desc = "可信度：25%"
                 remove_list_value(position_area, [1, 3, 4])
             if xiao_gui_info.x > xiao_gui_info.y:
+                xiao_gui_info.desc = "可信度：25%"
                 remove_list_value(position_area, [1, 3, 2])
         xiao_gui_info.position_area = position_area
 

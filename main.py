@@ -1,7 +1,9 @@
 # main.py
 from src.views.log_view import LogView
 from src.views.xiaogui_view import XiaoGuiView
+from src.views.layout_view import Layout
 import ttkbootstrap as ttk
+import tkinter as tk
 
 
 def main():
@@ -15,9 +17,10 @@ def main():
     # else:
     #     print('请求失败，状态码:', response.status_code)
     main_window = ttk.Window()
+    main_window.title("坐标预测")
     # root.geometry("1200x720")
-    LogView(main_window)
-    XiaoGuiView(main_window)
+    # LogView(main_window)
+    Layout(main_window)
     main_window.mainloop()
 
 

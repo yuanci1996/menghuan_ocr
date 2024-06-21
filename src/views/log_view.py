@@ -29,40 +29,38 @@ class CustomFormatter(logging.Formatter):
 
 
 class LogView(tk.Frame):
-    def __init__(self, master=None):
-        super().__init__(master)
-        self.log_text = ScrolledText(self, state='disabled', width=80, height=20, font='TkFixedFont')
-        self.show_log_button = None
+    def __init__(self, master=None, layout=None):
+        super().__init__(layout)
+        self.master = master
         self.create_widgets()
 
     def create_widgets(self):
         self.pack(fill=tk.BOTH, expand=True)
-        button_frame = tk.Frame(self)
-        button_frame.pack()
-        self.show_log_button = tk.Button(button_frame, text="切换日志", command=self.show_log)
-        self.show_log_button.pack(side="left", padx=5, pady=5)
-        self.show_log_button = tk.Button(button_frame, text="清理日志", command=self.clear_log)
-        self.show_log_button.pack(side="left", padx=5, pady=5)
-        self.log_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        self.log_text.pack_forget()
 
+    def show_log(self):
+
+        self.log_top = tk.Toplevel(self)
+        self.log_top.title("日志窗口")
+        self.log_top.geometry("600x400")
+
+        self.log_text = ScrolledText(self.log_top, state='disabled', width=80, height=20, font='TkFixedFont')
+        self.log_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        # 配置日志
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
 
-        text_handler = TextHandler(self.log_text)
-        text_handler.setLevel(logging.DEBUG)
+        self.text_handler = TextHandler(self.log_text)
+        self.text_handler.setLevel(logging.DEBUG)
 
         formatter = CustomFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-        text_handler.setFormatter(formatter)
+        self.text_handler.setFormatter(formatter)
+        logger.addHandler(self.text_handler)
+        self.log_top.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        logger.addHandler(text_handler)
-
-    def show_log(self):
-        if self.log_text.winfo_ismapped():
-            self.log_text.pack_forget()
-        else:
-            self.log_text.pack(padx=10, pady=10)
+    def on_close(self):
+        self.log_top.destroy()
+        logging.getLogger().removeHandler(self.text_handler)
 
     def clear_log(self):
         self.log_text.configure(state='normal')
