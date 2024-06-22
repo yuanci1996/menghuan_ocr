@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter.scrolledtext import ScrolledText
 from src.views.log_view import LogView
 from src.views.xiaogui_view import XiaoGuiView
 from src.views.ask_view import AskView

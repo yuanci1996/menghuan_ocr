@@ -6,7 +6,7 @@ import ttkbootstrap as ttk
 def main():
     main_window = ttk.Window()
     main_window.title("坐标预测")
-    # root.geometry("1200x720")
+    # main_window.geometry("800x600")
     Layout(main_window)
     main_window.mainloop()
 

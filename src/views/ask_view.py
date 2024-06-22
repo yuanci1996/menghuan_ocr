@@ -22,7 +22,7 @@ class AskView(tk.Frame):
         self.master = master
         self.controller = AskController()
         self._capture_label = None
-        self._ask_frame = None
+        self.ask_frame = None
         self.create_widgets()
 
     def create_widgets(self):
@@ -34,6 +34,11 @@ class AskView(tk.Frame):
 
         ask_id_frame = tk.Frame(self)
         ask_id_frame.pack(fill=tk.BOTH, expand=True)
+
+        ask_desc_frame = tk.Frame(ask_id_frame)
+        ask_desc_frame.pack(fill=tk.BOTH, expand=True)
+        ask_fb_desc_label = tk.Label(ask_desc_frame, text="题库：175dt.com")
+        ask_fb_desc_label.pack(side="left", padx=5, pady=5)
 
         ask_fb_frame = tk.Frame(ask_id_frame)
         ask_fb_frame.pack(fill=tk.BOTH, expand=True)
@@ -111,27 +116,33 @@ class AskView(tk.Frame):
 
     def ask(self):
         self.capture()
+
+        if self.ask_frame is not None:
+            self.ask_frame.destroy()
+
+        self.ask_frame = tk.Frame(self)
+        self.ask_frame.pack(fill=tk.BOTH, expand=True)
+
         response_text = self.controller.ask(image_to_base64(self._capture_label_image), self.ask_id_var.get())
         if response_text["status"] == 200:
             hits = response_text["hits"]
-            if self._ask_frame is not None:
-                self._ask_frame.destroy()
-            self._ask_frame = tk.Frame(self)
-            self._ask_frame.pack(fill=tk.BOTH, expand=True)
             for index, item in enumerate(hits):
-                frame = tk.Frame(self._ask_frame)
+                frame = tk.Labelframe(self.ask_frame, bootstyle="info")
                 frame.pack(fill=tk.X, padx=10, pady=5)
 
                 # 使用 Text 小部件显示问题
                 question = item['q']
                 self.set_question_text(frame, question)
-                # question_label = tk.Label(frame, text=question, bootstyle="danger")
-                # question_label.pack(side="left", padx=5, pady=5)
 
                 # 显示答案
                 answer = item['a']
-                answer_label = tk.Label(frame, text=answer, bootstyle="info")
-                answer_label.pack(side="left", padx=5, pady=5)
+                answer_label = tk.Label(frame, text=answer, bootstyle="primary")
+                answer_label.pack(side="left", padx=5, pady=5, anchor='center')
+        else:
+            frame = tk.Labelframe(self.ask_frame, bootstyle="info")
+            frame.pack(fill=tk.X, padx=10, pady=5)
+            answer_label = tk.Label(frame, text="未找到答案", bootstyle="primary")
+            answer_label.pack(side="left", padx=5, pady=5, anchor='center')
 
     def set_question_text(self, frame, text):
         parts = text.split('<b>')
@@ -139,13 +150,12 @@ class AskView(tk.Frame):
             if '</b>' in part:
                 sub_parts = part.split('</b>')
                 question_label = tk.Label(frame, text=sub_parts[0], bootstyle="danger")
-                question_label.pack(side="left")
-                question_label1 = tk.Label(frame, text=sub_parts[1], bootstyle="secondary")
-                question_label1.pack(side="left")
+                question_label.pack(side="left", anchor='center')
+                question_label1 = tk.Label(frame, text=sub_parts[1], bootstyle="default")
+                question_label1.pack(side="left", anchor='center')
             else:
-                question_label = tk.Label(frame, text=part, bootstyle="secondary")
-                question_label.pack(side="left", padx=5, pady=5)
-
+                question_label = tk.Label(frame, text=part, bootstyle="default")
+                question_label.pack(side="left", padx=5, pady=5, anchor='center')
 
     def capture(self):
         self._capture_label_image = self.capture_region.capture()

@@ -23,7 +23,6 @@ class AskController(tk.Frame):
                 text_list.append(text_obj["text"])
         ocr_text = "".join(text_list)
         logging.debug("ocr_text %s", ocr_text)
-        print(ocr_text)
         response = requests.get('https://175dt.com/api/search',
                                 params={"id": kw_id, "c": random.randint(10000, 30000), "kw": ocr_text},
                                 proxies={
