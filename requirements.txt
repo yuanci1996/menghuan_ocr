@@ -1,3 +1,4 @@
 ttkbootstrap~=1.10.1
 pillow~=10.3.0
 requests~=2.32.3
+keyboard~=0.13.5

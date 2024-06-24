@@ -5,6 +5,7 @@ from src.controllers.xiaogui_controller import XiaoGuiController
 from src.models.xiaogui import XiaoGui
 import base64
 import io
+import keyboard
 from src import utils
 from src.views.capture_region import CaptureRegion
 
@@ -64,7 +65,6 @@ class XiaoGuiView(tk.Frame):
         super().__init__(layout)
         self.master = master
         self.pack(fill=tk.BOTH, expand=True)
-        self.create_widgets()
         self.controller = XiaoGuiController()
         self.canvas = None
         self._capture_label = None
@@ -74,7 +74,16 @@ class XiaoGuiView(tk.Frame):
         self.capture_region_button = None
         self._capture_window = None
         self._canvas = None
+        self.key_listeners = {}
         self.region = (0, 0, 100, 100)
+        self.create_widgets()
+
+    def destroy(self):
+        # 自定义操作
+        for key in list(self.key_listeners.keys()):
+            self.remove_key_listener(key)
+        # 调用父类的 destroy 方法
+        super().destroy()
 
     def create_widgets(self):
         # 实例化 CaptureRegion
@@ -113,6 +122,22 @@ class XiaoGuiView(tk.Frame):
         self.y_entry.config(validate="key", validatecommand=(validate_cmd, "%P"))
         self.desc_label = tk.Label(position_frame, text="")
         self.desc_label.pack(side="left", padx=5, pady=5)
+
+        self.add_key_listener('ctrl+shift+a', self.show_position)
+
+    def add_key_listener(self, key, callback):
+        if key not in self.key_listeners:
+            # 注册键监听器
+            keyboard.add_hotkey(key, callback)
+            self.key_listeners[key] = callback
+            logger.debug(f"Started listening to {key}")
+
+    def remove_key_listener(self, key):
+        if key in self.key_listeners:
+            # 取消键监听器
+            keyboard.remove_hotkey(key)
+            del self.key_listeners[key]
+            logger.debug(f"Stopped listening to {key}")
 
     def on_capture_region_set(self, region):
         self.region = region

@@ -5,6 +5,7 @@ from PIL import ImageTk
 from src.controllers.ask_controller import AskController
 import base64
 import io
+import keyboard
 
 logger = logging.getLogger()
 
@@ -23,7 +24,15 @@ class AskView(tk.Frame):
         self.controller = AskController()
         self._capture_label = None
         self.ask_frame = None
+        self.key_listeners = {}
         self.create_widgets()
+
+    def destroy(self):
+        # 自定义操作
+        for key in list(self.key_listeners.keys()):
+            self.remove_key_listener(key)
+        # 调用父类的 destroy 方法
+        super().destroy()
 
     def create_widgets(self):
         self.pack(fill=tk.BOTH, expand=True)
@@ -111,10 +120,27 @@ class AskView(tk.Frame):
                                                    command=self.capture_region.show_set_capture_region)
         self.set_capture_region_button.pack(side="left", padx=5, pady=5)
 
+        self.add_key_listener('ctrl+shift+a', self.ask)
+
+    def add_key_listener(self, key, callback):
+        if key not in self.key_listeners:
+            # 注册键监听器
+            keyboard.add_hotkey(key, callback)
+            self.key_listeners[key] = callback
+            logger.debug(f"Started listening to {key}")
+
+    def remove_key_listener(self, key):
+        if key in self.key_listeners:
+            # 取消键监听器
+            keyboard.remove_hotkey(key)
+            del self.key_listeners[key]
+            logger.debug(f"Stopped listening to {key}")
+
     def on_capture_region_set(self, region):
         self.capture()
 
     def ask(self):
+        print("ask")
         self.capture()
 
         if self.ask_frame is not None:

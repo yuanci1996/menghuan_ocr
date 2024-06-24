@@ -93,7 +93,7 @@ def set_position_area(xiao_gui_info: XiaoGui):
     #                   2    |   1
     #               ------- x,y ---------
     #  五庄观 or 普陀山   3    |   4
-    #  x < 50 and y < 50     |   x > y or x > 150 and y < 50
+    #  x < 50 and y < 50     |   x > y or (x > 150 and y < 50)
     if xiao_gui_info.map_info.name == "普陀山" or xiao_gui_info.map_info.name == "五庄观":
         xiao_gui_info.position_area.append(3)
     else:
@@ -106,13 +106,13 @@ def set_position_area(xiao_gui_info: XiaoGui):
             remove_list_value(position_area, [3, 4])
         if xiao_gui_info.y < 50:
             remove_list_value(position_area, [2, 1])
-        if len(position_area) == 4:
-            if xiao_gui_info.x < xiao_gui_info.y:
-                xiao_gui_info.desc = "可信度：25%"
-                remove_list_value(position_area, [1, 3, 4])
-            if xiao_gui_info.x > xiao_gui_info.y:
-                xiao_gui_info.desc = "可信度：25%"
-                remove_list_value(position_area, [1, 3, 2])
+        # if len(position_area) == 4:
+        #     if xiao_gui_info.x < xiao_gui_info.y:
+        #         xiao_gui_info.desc = "可信度：25%"
+        #         remove_list_value(position_area, [1, 3, 4])
+        #     if xiao_gui_info.x > xiao_gui_info.y:
+        #         xiao_gui_info.desc = "可信度：25%"
+        #         remove_list_value(position_area, [1, 3, 2])
         xiao_gui_info.position_area = position_area
 
 
