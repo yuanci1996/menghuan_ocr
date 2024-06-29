@@ -1,19 +1,19 @@
-from PIL import Image, ImageTk, ImageDraw, ImageGrab
+from PIL import Image, ImageTk, ImageDraw
 import ttkbootstrap as tk
 import logging
 from src.controllers.xiaogui_controller import XiaoGuiController
 from src.models.xiaogui import XiaoGui
 import base64
 import io
-import keyboard
 from src import utils
-from src.views.capture_region import CaptureRegion
+from src.views.common.capture_region import CaptureRegion
+from src.views.common.hot_key_config import HotKeyConfig
 
 logger = logging.getLogger()
 
 
 def draw_coordinate(xiao_gui_info: XiaoGui):
-    # 绘制圆
+    # 绘制正方形
     position_area_image = Image.new('RGBA',
                                     (xiao_gui_info.map_info.image_width + 2 * xiao_gui_info.map_info.border_size,
                                      xiao_gui_info.map_info.image_height + 2 * xiao_gui_info.map_info.border_size),
@@ -21,27 +21,26 @@ def draw_coordinate(xiao_gui_info: XiaoGui):
     position_area_draw = ImageDraw.Draw(position_area_image)
     x = xiao_gui_info.x / xiao_gui_info.map_info.scale_width + xiao_gui_info.map_info.border_size
     y = xiao_gui_info.map_info.image_height + xiao_gui_info.map_info.border_size - xiao_gui_info.y / xiao_gui_info.map_info.scale_height
-    r = 50 / ((xiao_gui_info.map_info.scale_width + xiao_gui_info.map_info.scale_height) / 2)
-    position_area_draw.ellipse((x - r, y - r, x + r, y + r), outline="red", width=3)
+    side = 50 / ((xiao_gui_info.map_info.scale_width + xiao_gui_info.map_info.scale_height) / 2)
+
+    position_area_draw.rectangle((x - side, y - side, x + side, y + side), outline="red", width=3)
+
     # 绘制区域象限
     if xiao_gui_info.position_area:
         for quadrant in xiao_gui_info.position_area:
             if quadrant == 1:
                 # 第一象限：右上
-                position_area_draw.pieslice((x - r, y - r, x + r, y + r), start=270, end=360,
-                                            fill=xiao_gui_info.map_info.area_color)
+                position_area_draw.rectangle((x, y - side, x + side, y), fill=xiao_gui_info.map_info.area_color)
             elif quadrant == 2:
                 # 第二象限：左上
-                position_area_draw.pieslice((x - r, y - r, x + r, y + r), start=180, end=270,
-                                            fill=xiao_gui_info.map_info.area_color)
+                position_area_draw.rectangle((x - side, y - side, x, y), fill=xiao_gui_info.map_info.area_color)
             elif quadrant == 3:
                 # 第三象限：左下
-                position_area_draw.pieslice((x - r, y - r, x + r, y + r), start=90, end=180,
-                                            fill=xiao_gui_info.map_info.area_color)
+                position_area_draw.rectangle((x - side, y, x, y + side), fill=xiao_gui_info.map_info.area_color)
             elif quadrant == 4:
                 # 第四象限：右下
-                position_area_draw.pieslice((x - r, y - r, x + r, y + r), start=0, end=90,
-                                            fill=xiao_gui_info.map_info.area_color)
+                position_area_draw.rectangle((x, y, x + side, y + side), fill=xiao_gui_info.map_info.area_color)
+
     return Image.alpha_composite(xiao_gui_info.map_info.background_image, position_area_image)
 
 
@@ -78,34 +77,25 @@ class XiaoGuiView(tk.Frame):
         self.region = (0, 0, 100, 100)
         self.create_widgets()
 
-    def destroy(self):
-        # 自定义操作
-        for key in list(self.key_listeners.keys()):
-            self.remove_key_listener(key)
-        # 调用父类的 destroy 方法
-        super().destroy()
-
     def create_widgets(self):
         # 实例化 CaptureRegion
         self.capture_region = CaptureRegion(self.master, self.on_capture_region_set)
-        button_frame = tk.Frame(self)
-        button_frame.pack()
-        self.show_button = tk.Button(button_frame, text="OCR获取坐标", command=self.show_position)
-        self.show_button.pack(side="left", padx=5, pady=5)
-        self.show_button = tk.Button(button_frame, text="手动生成坐标", command=self.build_position)
-        self.show_button.pack(side="left", padx=5, pady=5)
-        self.set_capture_region_button = tk.Button(button_frame, text="设置截图范围",
-                                                   command=self.capture_region.show_set_capture_region)
-        self.set_capture_region_button.pack(side="left", padx=5, pady=5)
 
-        position_map_frame = tk.Frame(self)
-        position_map_frame.pack()
+        xg_id_frame = tk.Frame(self)
+        xg_id_frame.pack(fill=tk.BOTH, expand=True)
+
+        hot_key_frame = tk.Frame(xg_id_frame)
+        hot_key_frame.pack(fill=tk.BOTH, expand=True)
+        HotKeyConfig(hot_key_frame, "xg_hot_key", self.show_position)
+
+        position_map_frame = tk.Frame(xg_id_frame)
+        position_map_frame.pack(fill=tk.BOTH, expand=True)
         self.map_var = tk.StringVar(value="傲来国")
         for map_name, map_info in utils.map_util.map_infos.items():
             radio = tk.Radiobutton(position_map_frame, text=map_name, variable=self.map_var, value=map_name)
             radio.pack(side="left", padx=5, pady=5)
 
-        position_frame = tk.Frame(self)
+        position_frame = tk.Frame(xg_id_frame)
         position_frame.pack()
         x_label = tk.Label(position_frame, text="x轴")
         x_label.pack(side="left", padx=5, pady=5)
@@ -123,21 +113,15 @@ class XiaoGuiView(tk.Frame):
         self.desc_label = tk.Label(position_frame, text="")
         self.desc_label.pack(side="left", padx=5, pady=5)
 
-        self.add_key_listener('ctrl+shift+a', self.show_position)
-
-    def add_key_listener(self, key, callback):
-        if key not in self.key_listeners:
-            # 注册键监听器
-            keyboard.add_hotkey(key, callback)
-            self.key_listeners[key] = callback
-            logger.debug(f"Started listening to {key}")
-
-    def remove_key_listener(self, key):
-        if key in self.key_listeners:
-            # 取消键监听器
-            keyboard.remove_hotkey(key)
-            del self.key_listeners[key]
-            logger.debug(f"Stopped listening to {key}")
+        button_frame = tk.Frame(xg_id_frame)
+        button_frame.pack()
+        self.show_button = tk.Button(button_frame, text="OCR获取坐标", command=self.show_position)
+        self.show_button.pack(side="left", padx=5, pady=5)
+        self.show_button = tk.Button(button_frame, text="手动生成坐标", command=self.build_position)
+        self.show_button.pack(side="left", padx=5, pady=5)
+        self.set_capture_region_button = tk.Button(button_frame, text="设置截图范围",
+                                                   command=self.capture_region.show_set_capture_region)
+        self.set_capture_region_button.pack(side="left", padx=5, pady=5)
 
     def on_capture_region_set(self, region):
         self.region = region

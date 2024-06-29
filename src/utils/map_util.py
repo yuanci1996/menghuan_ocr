@@ -35,8 +35,6 @@ map_infos = {'傲来国': Map(name="傲来国", names=["傲来国", "傲来", "�
                         image_path=os.path.join(project_root, "static\\images\\map\\zzg.png"))
              }
 
-print("project_root = ", project_root)
-
 
 def remove_after_substring(main_string, sub_string):
     # 找到子字符串的位置

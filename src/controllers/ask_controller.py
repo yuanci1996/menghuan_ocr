@@ -12,6 +12,7 @@ class AskController(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.ocr_util = utils.Ocr()
+        self.hot_key_setting = utils.HotKeyPressListener()
 
     def ask(self, image_base64, kw_id=53):
         # 截取对应位置的图片
