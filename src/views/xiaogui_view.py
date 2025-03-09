@@ -131,7 +131,9 @@ class XiaoGuiView(tk.Frame):
         if self.canvas is not None:
             self.canvas.destroy()
         self.capture()
-        xiao_gui_info = self.controller.show_position(image_to_base64(self._capture_label_image))
+        # xiao_gui_info = self.controller.show_position(image_to_base64(self._capture_label_image))
+        xiao_gui_info = self.controller.show_position(self._capture_label_image)
+        utils.map_util.set_position_area(xiao_gui_info)
         self.handle_xiao_gui_info(xiao_gui_info)
 
     def build_position(self):

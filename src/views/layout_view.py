@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 from src.views.log_view import LogView
 from src.views.xiaogui_view import XiaoGuiView
-from src.views.ask_view import AskView
+# from src.views.ask_view import AskView
 
 
 class Layout(tk.Frame):
@@ -13,7 +13,7 @@ class Layout(tk.Frame):
 
         menu = tk.Menu(master, tearoff=0)
 
-        menu.add_command(label="答题", command=self.show_ask)
+        # menu.add_command(label="答题", command=self.show_ask)
         menu.add_command(label="坐标", command=self.show_position)
         menu.add_command(label="日志", command=self.show_log)
 
@@ -24,16 +24,16 @@ class Layout(tk.Frame):
 
         self.log = LogView(master, master)
 
-        self.show_ask()
+        self.show_position()
 
     def clear_frame(self):
         for widget in self.main_frame.winfo_children():
             widget.destroy()
 
-    def show_ask(self):
-        self.clear_frame()
-        view = AskView(self.master, self.main_frame)
-        view.pack(fill=tk.BOTH, expand=True)
+    # def show_ask(self):
+    #     self.clear_frame()
+    #     view = AskView(self.master, self.main_frame)
+    #     view.pack(fill=tk.BOTH, expand=True)
 
     def show_position(self):
         self.clear_frame()

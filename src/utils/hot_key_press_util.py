@@ -24,6 +24,7 @@ class HotKeyPressListener:
 
     def on_key_press(self, event):
         key_name = event.name
+        print(key_name)
         if key_name not in self.pressed_keys:
             self.pressed_keys.append(key_name)
         if self.callback is not None:
