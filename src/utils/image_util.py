@@ -353,7 +353,7 @@ def get_map_location(image):
         return '', 0, 0
     image = image[map_location[1]:map_location[1] + map_location[3] * 2, :]
     map_location[1] = 0
-    show_image("新地图文字：", image)
+    # show_image("新地图文字：", image)
     num_locations = []
 
     for i in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'dh']:
@@ -370,7 +370,7 @@ def get_map_location(image):
                 else:
                     num_locations.append((x, i))
 
-    # print(num_locations)
+    print(num_locations)
     # 按 x 从小到大排序
     sorted_data = sorted(num_locations, key=lambda item: item[0])
 

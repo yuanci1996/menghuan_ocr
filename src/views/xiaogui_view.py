@@ -136,7 +136,6 @@ class XiaoGuiView(tk.Frame):
         # xiao_gui_info = self.controller.show_position(image_to_base64(self._capture_label_image))
         xiao_gui_info = self.controller.show_position(self._capture_label_image)
         utils.map_util.set_position_area(xiao_gui_info)
-        print("xiao_gui_info", xiao_gui_info)
         self.handle_xiao_gui_info(xiao_gui_info)
 
     def build_position(self):
@@ -163,9 +162,9 @@ class XiaoGuiView(tk.Frame):
             self.desc_label.config(text=xiao_gui_info.desc)
 
             # 绘制坐标轴
-            image = draw_coordinate(xiao_gui_info)
-            if image is None:
+            if xiao_gui_info.map_name is None or xiao_gui_info.map_name == '':
                 return
+            image = draw_coordinate(xiao_gui_info)
             self.photo = ImageTk.PhotoImage(image)
             self.canvas = tk.Canvas(self, width=image.width, height=image.height)
             self.canvas.pack()
