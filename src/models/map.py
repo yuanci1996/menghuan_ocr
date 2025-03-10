@@ -36,7 +36,11 @@ class Map:
         self.name = name
         self.names = names
         self.width = width
+        self.image_width = width
+        self.scale_width = 1
         self.height = height
+        self.image_height = height
+        self.scale_height = 1
         self.image_path = image_path
         self.area_color = area_color
         try:

@@ -13,6 +13,8 @@ logger = logging.getLogger()
 
 
 def draw_coordinate(xiao_gui_info: XiaoGui):
+    if xiao_gui_info.map_info.name is None:
+        return None
     # 绘制正方形
     position_area_image = Image.new('RGBA',
                                     (xiao_gui_info.map_info.image_width + 2 * xiao_gui_info.map_info.border_size,
@@ -134,6 +136,7 @@ class XiaoGuiView(tk.Frame):
         # xiao_gui_info = self.controller.show_position(image_to_base64(self._capture_label_image))
         xiao_gui_info = self.controller.show_position(self._capture_label_image)
         utils.map_util.set_position_area(xiao_gui_info)
+        print("xiao_gui_info", xiao_gui_info)
         self.handle_xiao_gui_info(xiao_gui_info)
 
     def build_position(self):
@@ -161,6 +164,8 @@ class XiaoGuiView(tk.Frame):
 
             # 绘制坐标轴
             image = draw_coordinate(xiao_gui_info)
+            if image is None:
+                return
             self.photo = ImageTk.PhotoImage(image)
             self.canvas = tk.Canvas(self, width=image.width, height=image.height)
             self.canvas.pack()

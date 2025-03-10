@@ -73,17 +73,18 @@ def find_xiao_gui_info(ocr_text: string):
 
 
 def set_position_area(xiao_gui_info: XiaoGui):
-    for key, map_obj in map_infos.items():
-        names = map_obj.names
-        for name in names:
-            if name in xiao_gui_info.map_name:
-                xiao_gui_info.map_info = map_obj
-                xiao_gui_info.map_name = map_obj.name
-                break
+    if xiao_gui_info.map_name is not None:
+        for key, map_obj in map_infos.items():
+            names = map_obj.names
+            for name in names:
+                if name in xiao_gui_info.map_name:
+                    xiao_gui_info.map_info = map_obj
+                    xiao_gui_info.map_name = map_obj.name
+                    break
     # map_info = map_infos[xiao_gui_info.map_name]
     if xiao_gui_info.map_info is None or len(xiao_gui_info.map_info.name) == 0:
         logging.debug("未找到地图信息 %s", xiao_gui_info.map_name)
-        return
+        return False
     else:
         xiao_gui_info.desc = "可信度：100%"
         logging.debug("找到地图信息 %s", xiao_gui_info.map_info)
@@ -112,6 +113,7 @@ def set_position_area(xiao_gui_info: XiaoGui):
         #         xiao_gui_info.desc = "可信度：25%"
         #         remove_list_value(position_area, [1, 3, 2])
         xiao_gui_info.position_area = position_area
+        return True
 
 
 def remove_list_value(value_list, values):

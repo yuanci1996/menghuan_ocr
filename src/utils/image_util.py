@@ -1,9 +1,12 @@
-import time
-
+import os
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
+current_directory = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_directory, os.pardir))
+
+# pip install opencv-python --index-url https://mirrors.aliyun.com/pypi/simple/
 
 def show_image(title, img):
     cv2.imshow(title, img)
@@ -297,49 +300,75 @@ def get_map_image(image, color_type='yellow'):
 
 
 map_keys = [
-    '傲来国',
-    '宝象国',
-    '长寿村',
-    '大唐境外',
-    '建邺城',
-    '江南野外',
-    '女儿村',
-    '普陀山',
-    '五庄观',
-    '西凉女国',
-    '朱紫国',
+    ('傲来国', 'alg'),
+    ('宝象国', 'bxg'),
+    ('长寿村', 'csc'),
+    ('大唐境外', 'dtjw'),
+    ('建邺城', 'jyc'),
+    ('江南野外', 'jnyw'),
+    ('女儿村', 'nec'),
+    ('普陀山', 'pts'),
+    ('五庄观', 'wzg'),
+    ('西凉女国', 'xlng'),
+    ('朱紫国', 'zzg'),
 ]
+
+def is_overlap(obj1, obj2):
+    """
+    判断两个矩形区域是否存在重叠
+    :param obj1: (x, y, w, h) -> 第一个矩形 (map_location)
+    :param obj2: (x, y, w, h) -> 第二个矩形 (matched_object)
+    :return: True/False 是否重叠
+    """
+    x1, y1, w1, h1 = obj1
+    x2, y2, w2, h2 = obj2
+
+    # 计算矩形的边界
+    left1, right1, top1, bottom1 = x1, x1 + w1, y1, y1 + h1
+    left2, right2, top2, bottom2 = x2, x2 + w2, y2, y2 + h2
+
+    # 判断是否有重叠
+    if right1 > left2 and right2 > left1 and bottom1 > top2 and bottom2 > top1:
+        return True  # 存在重叠
+    return False  # 无重叠
 
 
 def get_map_location(image):
-    # x, y, w, h
-    map_location = [0, 0, 0, 0]
+    # x, y, w, h, map_name
+    map_location = None
 
-    for map_key in map_keys:
-        print(map_key)
-        template = cv2.imread(f"../key/{map_key}.png", cv2.IMREAD_GRAYSCALE)
-        show_image("template", template)
+    for map_name, map_key in map_keys:
+        path = os.path.normpath(os.path.join(project_root, "static", "images", "key", f"{map_key}.png"))
+        template = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         # print("开始匹配" + map_key)
         matched_objects = pyramid_template_matching(image,
                                                     template)
         if len(matched_objects) > 0:
-            # print("匹配地图位置：", matched_objects)
+            print("匹配地图位置：", matched_objects)
             (x, y), (w, h), _, _ = matched_objects[0]
-            map_location = [x, y, w, h, map_key]
+            map_location = [x, y, w, h, map_name]
             break
 
+    if map_location is None:
+        return '', 0, 0
     image = image[map_location[1]:map_location[1] + map_location[3] * 2, :]
+    map_location[1] = 0
+    show_image("新地图文字：", image)
     num_locations = []
 
     for i in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'dh']:
-        template = cv2.imread(f"key/{i}.png", cv2.IMREAD_GRAYSCALE)
+        path = os.path.normpath(os.path.join(project_root, "static", "images", "key", f"{i}.png"))
+        template = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         matched_objects = pyramid_template_matching(image,
                                                     template)
         if len(matched_objects) > 0:
-            # print(f"匹配{i}：", matched_objects)
+            print(f"匹配{i}：", matched_objects)
             for matched_object in matched_objects:
                 (x, y), (w, h), _, _ = matched_object
-                num_locations.append((x, i))
+                if is_overlap((x, y, w, h), (map_location[0], map_location[1], map_location[2], map_location[3])):
+                    print(f"匹配到的{i}与地图范围存在重叠：", matched_object)
+                else:
+                    num_locations.append((x, i))
 
     # print(num_locations)
     # 按 x 从小到大排序
@@ -361,5 +390,5 @@ def get_map_location(image):
     location_y = ''.join([key for (x, key) in part2])
 
     # 打印结果
-    # print(f"x: {location_x}, y: {location_y}")
-    return map_location[4], location_x, location_y
+    print(f"map_name: {map_location[4]}, x: {location_x}, y: {location_y}")
+    return map_location[4], int(location_x), int(location_y)
