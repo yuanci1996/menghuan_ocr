@@ -1,13 +1,22 @@
 import logging
-import re
-import os
-import string
+from PIL import Image, ImageDraw
 
 from src.models.map import Map
 from src.models.xiaogui import XiaoGui
+import os
+import cv2
+import numpy as np
+from . import config_util
 
+# pip install opencv-python --index-url https://mirrors.aliyun.com/pypi/simple/
 current_directory = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_directory, os.pardir))
+scales_str = config_util.read_config("map_pars", "scales")
+scales_config = [float(x) for x in scales_str.split(", ")]
+# scales_str = ", ".join(map(str, scales))
+scales_runtime = []
+scale_runtime = config_util.read_config("map_pars", "run_time_scale")
+print(f"初始化缩放比例：{scales_config}，固定比例: {scale_runtime}")
 
 logger = logging.getLogger()
 map_infos = {'傲来国': Map(name="傲来国", names=["傲来国", "傲来", "来国", "傲", "来"], width=224, height=150,
@@ -36,42 +45,6 @@ map_infos = {'傲来国': Map(name="傲来国", names=["傲来国", "傲来", "�
              }
 
 
-def remove_after_substring(main_string, sub_string):
-    # 找到子字符串的位置
-    position = main_string.find(sub_string)
-
-    if position != -1:
-        # 返回子字符串之前的部分
-        return main_string[:position]
-    else:
-        # 如果未找到子字符串，则根据具体情况处理，这里简单返回原字符串
-        return main_string
-
-
-def find_xiao_gui_info(ocr_text: string):
-    # pattern = r"去(.*?)，(.*?)附近抓(.*?)鬼"
-    # match = re.search(pattern, ocr_text)
-    numbers = re.findall(r'\d+', ocr_text)
-    logging.debug("字符串匹配信息 %s 坐标查找 %s", ocr_text, numbers)
-    info = XiaoGui(ocr_text=ocr_text)
-    if numbers is not None and 1 < len(numbers) < 4:
-        if len(numbers) == 2:
-            info.x = int(numbers[0])
-            info.y = int(numbers[1])
-        if len(numbers) == 3:
-            info.x = int(numbers[1])
-            info.y = int(numbers[2])
-        info.map_name = remove_after_substring(ocr_text, str(info.x))
-        logging.debug("地图子字符串 %s", info.map_name)
-    else:
-        logging.debug("未找到怪物坐标匹配信息 %s 坐标查找 %s", ocr_text, numbers)
-        return None
-    set_position_area(info)
-    if info.map_info is None or len(info.map_info.name) == 0:
-        return None
-    return info
-
-
 def set_position_area(xiao_gui_info: XiaoGui):
     if xiao_gui_info.map_name is not None:
         for key, map_obj in map_infos.items():
@@ -81,7 +54,6 @@ def set_position_area(xiao_gui_info: XiaoGui):
                     xiao_gui_info.map_info = map_obj
                     xiao_gui_info.map_name = map_obj.name
                     break
-    # map_info = map_infos[xiao_gui_info.map_name]
     if xiao_gui_info.map_info is None or len(xiao_gui_info.map_info.name) == 0:
         logging.debug("未找到地图信息 %s", xiao_gui_info.map_name)
         return False
@@ -120,3 +92,230 @@ def remove_list_value(value_list, values):
     for value in values:
         if value in value_list:
             value_list.remove(value)
+
+
+def draw_coordinate(xiao_gui_info: XiaoGui):
+    if xiao_gui_info.map_info.name is None:
+        return None
+    # 绘制正方形
+    position_area_image = Image.new('RGBA',
+                                    (xiao_gui_info.map_info.image_width + 2 * xiao_gui_info.map_info.border_size,
+                                     xiao_gui_info.map_info.image_height + 2 * xiao_gui_info.map_info.border_size),
+                                    (255, 255, 255, 0))
+    position_area_draw = ImageDraw.Draw(position_area_image)
+    x = xiao_gui_info.x / xiao_gui_info.map_info.scale_width + xiao_gui_info.map_info.border_size
+    y = xiao_gui_info.map_info.image_height + xiao_gui_info.map_info.border_size - xiao_gui_info.y / xiao_gui_info.map_info.scale_height
+    side = 50 / ((xiao_gui_info.map_info.scale_width + xiao_gui_info.map_info.scale_height) / 2)
+
+    position_area_draw.rectangle((x - side, y - side, x + side, y + side), outline="red", width=3)
+
+    # 绘制区域象限
+    if xiao_gui_info.position_area:
+        for quadrant in xiao_gui_info.position_area:
+            if quadrant == 1:
+                # 第一象限：右上
+                position_area_draw.rectangle((x, y - side, x + side, y), fill=xiao_gui_info.map_info.area_color)
+            elif quadrant == 2:
+                # 第二象限：左上
+                position_area_draw.rectangle((x - side, y - side, x, y), fill=xiao_gui_info.map_info.area_color)
+            elif quadrant == 3:
+                # 第三象限：左下
+                position_area_draw.rectangle((x - side, y, x, y + side), fill=xiao_gui_info.map_info.area_color)
+            elif quadrant == 4:
+                # 第四象限：右下
+                position_area_draw.rectangle((x, y, x + side, y + side), fill=xiao_gui_info.map_info.area_color)
+
+    return Image.alpha_composite(xiao_gui_info.map_info.background_image, position_area_image)
+
+
+def show_image(title, img):
+    cv2.imshow("Window", img)
+    cv2.setWindowTitle("Window", title)
+
+
+def pyramid_template_matching(image,
+                              template,
+                              scales=None,
+                              threshold=0.8,
+                              proximity_threshold=5):
+    """
+    在不同尺度上对原图进行缩放，并进行模板匹配，返回所有匹配的结果
+    :param image:待匹配的原图（灰度图）
+    :param template:模板图像（灰度图）
+    :param scales:原图缩放因子列表，例如 np.linspace(1.0, 2.0, num=10)
+    :param threshold:设定的匹配阈值（0~1），超过该值的匹配才会被记录
+    :param proximity_threshold: 去重时的距离阈值，单位：像素
+    :return: (matched_objects) 包含多个匹配位置、匹配尺度、匹配得分的信息
+    """
+    if scales is None:
+        if scale_runtime is not None and scale_runtime != '':
+            scales = [scale_runtime]
+        else:
+            scales = scales_config
+    print(f"scales:{scales}")
+    matched_objects = []
+    matched_locations = np.empty((0, 2), dtype=int)  # Stores matched locations as a numpy array
+
+    for scale in scales:
+        # 按当前尺度缩放原图
+        resized_image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+
+        if resized_image.shape[0] < template.shape[0] or resized_image.shape[1] < template.shape[1]:
+            break  # 停止继续缩小
+
+        # print(f"当前尺度：{scale}，缩放后原图尺寸：{resized_image.shape}")
+
+        # 进行模板匹配
+        result = cv2.matchTemplate(resized_image, template, cv2.TM_CCOEFF_NORMED)
+
+        # 找出所有匹配度大于阈值的点
+        locations = np.where(result >= threshold)
+
+        for loc in zip(*locations[::-1]):  # 解析匹配的坐标
+            # 映射回原始尺度
+            original_loc = (int(loc[0] / scale), int(loc[1] / scale))
+
+            # Check if the current location is too close to any of the previous matched locations
+            if len(matched_locations) > 0:
+                # Calculate the absolute difference in x and y coordinates
+                diff = np.abs(matched_locations - original_loc)
+
+                # Check if the difference in both x and y is below the proximity threshold (5 pixels)
+                if np.all(diff <= proximity_threshold, axis=1).any():
+                    continue  # Skip this duplicate match
+
+            # If not duplicate, add to the list
+            matched_objects.append((original_loc,
+                                    (int(template.shape[1] / scale), int(template.shape[0] / scale)),
+                                    scale,
+                                    result[loc[1], loc[0]]))
+            matched_locations = np.vstack([matched_locations, original_loc])  # Add new location
+
+        # 可选择性地添加停止条件，避免不必要的多次迭代
+        if len(matched_objects) > 0:
+            scales_runtime.append(scale)
+            break
+
+    return matched_objects
+
+
+def get_map_image(image, color_type='yellow'):
+    if color_type == 'yellow':
+        return cv2.inRange(cv2.cvtColor(image, cv2.COLOR_BGR2HSV),
+                           np.array([25, 35, 150]),
+                           np.array([35, 255, 255]))
+    else:
+        return cv2.inRange(cv2.cvtColor(image, cv2.COLOR_BGR2HSV),
+                           np.array([170, 100, 100]),
+                           np.array([180, 255, 255]))
+
+
+map_keys = [
+    ('傲来国', 'alg'),
+    ('宝象国', 'bxg'),
+    ('长寿村', 'csc'),
+    ('大唐境外', 'dtjw'),
+    ('建邺城', 'jyc'),
+    ('江南野外', 'jnyw'),
+    ('女儿村', 'nec'),
+    ('普陀山', 'pts'),
+    ('五庄观', 'wzg'),
+    ('西凉女国', 'xlng'),
+    ('朱紫国', 'zzg'),
+]
+
+
+def is_overlap(obj1, obj2):
+    """
+    判断两个矩形区域是否存在重叠
+    :param obj1: (x, y, w, h) -> 第一个矩形 (map_location)
+    :param obj2: (x, y, w, h) -> 第二个矩形 (matched_object)
+    :return: True/False 是否重叠
+    """
+    x1, y1, w1, h1 = obj1
+    x2, y2, w2, h2 = obj2
+
+    # 计算矩形的边界
+    left1, right1, top1, bottom1 = x1, x1 + w1, y1, y1 + h1
+    left2, right2, top2, bottom2 = x2, x2 + w2, y2, y2 + h2
+
+    # 判断是否有重叠
+    if right1 > left2 and right2 > left1 and bottom1 > top2 and bottom2 > top1:
+        return True  # 存在重叠
+    return False  # 无重叠
+
+
+def get_map_location(image):
+    # x, y, w, h, map_name
+    map_location = None
+
+    # show_image("待检测图片：", image)
+    for map_name, map_key in map_keys:
+        path = os.path.normpath(os.path.join(project_root, "static", "images", "key", f"{map_key}.png"))
+        template = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        # print("开始匹配" + map_key)
+        matched_objects = pyramid_template_matching(image,
+                                                    template)
+        if len(matched_objects) > 0:
+            print("匹配地图位置：", matched_objects)
+            (x, y), (w, h), _, _ = matched_objects[0]
+            map_location = [x, y, w, h, map_name]
+            break
+
+    if map_location is None:
+        print("未匹配到地图位置")
+        logger.debug("未匹配到地图位置")
+        return '', 0, 0
+    image = image[map_location[1]:map_location[1] + map_location[3] * 2, :]
+    map_location[1] = 0
+    # show_image("新地图文字：", image)
+    num_locations = []
+
+    for i in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'dh']:
+        path = os.path.normpath(os.path.join(project_root, "static", "images", "key", f"{i}.png"))
+        template = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        matched_objects = pyramid_template_matching(image,
+                                                    template)
+        if len(matched_objects) > 0:
+            print(f"匹配{i}：", matched_objects)
+            for matched_object in matched_objects:
+                (x, y), (w, h), _, _ = matched_object
+                if is_overlap((x, y, w, h), (map_location[0], map_location[1], map_location[2], map_location[3])):
+                    print(f"匹配到的{i}与地图范围存在重叠：", matched_object)
+                else:
+                    num_locations.append((x, i))
+
+    print(num_locations)
+    # 按 x 从小到大排序
+    sorted_data = sorted(num_locations, key=lambda item: item[0])
+
+    # 找到 'dh' 的索引
+    split_index = next((i for i, (x, key) in enumerate(sorted_data) if key == 'dh'), None)
+
+    # 分割列表
+    if split_index is not None:
+        part1 = sorted_data[:split_index]  # 'dh' 之前的部分
+        part2 = sorted_data[split_index + 1:]  # 'dh' 之后的部分
+    else:
+        part1 = sorted_data
+        part2 = []
+
+    # 提取 key 并组合成数字
+    location_x = ''.join([key for (x, key) in part1])
+    location_y = ''.join([key for (x, key) in part2])
+
+    # 打印结果
+    print(f"map_name: {map_location[4]}, x: {location_x}, y: {location_y}")
+    logger.debug(f"map_name: {map_location[4]}, x: {location_x}, y: {location_y}")
+    print("scales_runtime", scales_runtime)
+    if len(scales_runtime) > 100:
+        scale_runtime = np.mean(scales_runtime)
+        logger.debug(f"执行生成最终缩放参数 {scale_runtime}", scale_runtime)
+        config_util.update_config("map_pars", "run_time_scale", scale_runtime)
+    return map_location[4], safe_int(location_x), safe_int(location_y)
+
+
+def safe_int(value, default=None):
+    if value is None or value == "":
+        return default
+    return int(value)

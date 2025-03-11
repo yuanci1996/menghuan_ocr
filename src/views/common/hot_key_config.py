@@ -4,7 +4,6 @@ import ttkbootstrap as tk
 from src import utils
 import keyboard
 import logging
-import os
 
 logger = logging.getLogger()
 
@@ -13,13 +12,11 @@ class HotKeyConfig(tk.Frame):
     def __init__(self, parent_frame, hot_key="ask_hot_key", hot_key_event=None):
         super().__init__(parent_frame)
         self.parent_frame = parent_frame
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        self.config_file = os.path.join(current_directory, "..\\..\\static\\config\\config.ini")
-        print(self.config_file)
         self.key_listeners = {}
+        self.hot_key = hot_key
         self.hot_key_setting_util = utils.HotKeyPressListener()
         self.hot_key_event = hot_key_event
-        self.hot_keyboard = utils.config_util.read_config(self.config_file, "hot_key", hot_key)
+        self.hot_keyboard = utils.config_util.read_config("hot_key", hot_key)
         self.create_widgets()
 
     def destroy(self):
@@ -31,7 +28,7 @@ class HotKeyConfig(tk.Frame):
 
     def create_widgets(self):
         hot_key_frame = tk.Frame(self.parent_frame)
-        hot_key_frame.pack(fill=tk.BOTH, expand=True)
+        hot_key_frame.pack(side="left", padx=5, pady=5)
 
         hot_key_desc = tk.Label(hot_key_frame, text="快捷键：")
         hot_key_desc.pack(side="left", padx=5, pady=5)
@@ -77,7 +74,7 @@ class HotKeyConfig(tk.Frame):
 
     def handle_hot_key_confirm(self):
         self.hot_keyboard = self.hot_key_label.cget('text')
-        utils.config_util.update_config(self.config_file, 'hot_key', 'ask_hot_key', self.hot_keyboard)
+        utils.config_util.update_config('hot_key', self.hot_key, self.hot_keyboard)
         self.add_key_listener(self.hot_keyboard, self.hot_key_event)
         self.hot_key_setting_button.pack(side="left", padx=5, pady=5)
         self.hot_key_confirm_button.pack_forget()

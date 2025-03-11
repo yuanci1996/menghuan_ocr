@@ -1,56 +1,15 @@
-from PIL import Image, ImageTk, ImageDraw
+import cv2
+import numpy as np
+from PIL import ImageTk
 import ttkbootstrap as tk
 import logging
 from src.controllers.xiaogui_controller import XiaoGuiController
 from src.models.xiaogui import XiaoGui
-import base64
-import io
 from src import utils
 from src.views.common.capture_region import CaptureRegion
 from src.views.common.hot_key_config import HotKeyConfig
 
 logger = logging.getLogger()
-
-
-def draw_coordinate(xiao_gui_info: XiaoGui):
-    if xiao_gui_info.map_info.name is None:
-        return None
-    # 绘制正方形
-    position_area_image = Image.new('RGBA',
-                                    (xiao_gui_info.map_info.image_width + 2 * xiao_gui_info.map_info.border_size,
-                                     xiao_gui_info.map_info.image_height + 2 * xiao_gui_info.map_info.border_size),
-                                    (255, 255, 255, 0))
-    position_area_draw = ImageDraw.Draw(position_area_image)
-    x = xiao_gui_info.x / xiao_gui_info.map_info.scale_width + xiao_gui_info.map_info.border_size
-    y = xiao_gui_info.map_info.image_height + xiao_gui_info.map_info.border_size - xiao_gui_info.y / xiao_gui_info.map_info.scale_height
-    side = 50 / ((xiao_gui_info.map_info.scale_width + xiao_gui_info.map_info.scale_height) / 2)
-
-    position_area_draw.rectangle((x - side, y - side, x + side, y + side), outline="red", width=3)
-
-    # 绘制区域象限
-    if xiao_gui_info.position_area:
-        for quadrant in xiao_gui_info.position_area:
-            if quadrant == 1:
-                # 第一象限：右上
-                position_area_draw.rectangle((x, y - side, x + side, y), fill=xiao_gui_info.map_info.area_color)
-            elif quadrant == 2:
-                # 第二象限：左上
-                position_area_draw.rectangle((x - side, y - side, x, y), fill=xiao_gui_info.map_info.area_color)
-            elif quadrant == 3:
-                # 第三象限：左下
-                position_area_draw.rectangle((x - side, y, x, y + side), fill=xiao_gui_info.map_info.area_color)
-            elif quadrant == 4:
-                # 第四象限：右下
-                position_area_draw.rectangle((x, y, x + side, y + side), fill=xiao_gui_info.map_info.area_color)
-
-    return Image.alpha_composite(xiao_gui_info.map_info.background_image, position_area_image)
-
-
-def image_to_base64(image):
-    buffered = io.BytesIO()
-    image.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-    return img_str
 
 
 def validate_input(new_value):
@@ -88,59 +47,98 @@ class XiaoGuiView(tk.Frame):
 
         hot_key_frame = tk.Frame(xg_id_frame)
         hot_key_frame.pack(fill=tk.BOTH, expand=True)
+
         HotKeyConfig(hot_key_frame, "xg_hot_key", self.show_position)
 
-        position_map_frame = tk.Frame(xg_id_frame)
-        position_map_frame.pack(fill=tk.BOTH, expand=True)
+        self.show_out_var = tk.IntVar(value=int(utils.config_util.read_config("setting", "show_out")))
+        self.show_out_switch = tk.Checkbutton(
+            hot_key_frame,
+            text="显示截图结果",
+            variable=self.show_out_var,
+            onvalue=1,  # 打开时的值
+            offvalue=0,  # 关闭时的值
+            command=self.toggle_setting_switch,
+        )
+        self.show_out_switch.pack(side="left", padx=5, pady=5)
+
+        self.hide_input_var = tk.IntVar(value=int(utils.config_util.read_config("setting", "hide_input")))
+        self.hide_input_var_switch = tk.Checkbutton(
+            hot_key_frame,
+            text="隐藏手动输入",
+            variable=self.hide_input_var,
+            onvalue=1,  # 打开时的值
+            offvalue=0,  # 关闭时的值
+            command=self.toggle_setting_switch,
+        )
+        self.hide_input_var_switch.pack(side="left", padx=5, pady=5)
+
+        self.set_capture_region_button = tk.Button(hot_key_frame, text="设置截图范围",
+                                                   command=self.capture_region.show_set_capture_region)
+        self.set_capture_region_button.pack(side="left", padx=5, pady=5)
+
+        self.position_map_frame = tk.Frame(xg_id_frame)
+        self.position_map_frame.pack(fill=tk.BOTH, expand=True)
         self.map_var = tk.StringVar(value="傲来国")
         for map_name, map_info in utils.map_util.map_infos.items():
-            radio = tk.Radiobutton(position_map_frame, text=map_name, variable=self.map_var, value=map_name)
+            radio = tk.Radiobutton(self.position_map_frame, text=map_name, variable=self.map_var, value=map_name)
             radio.pack(side="left", padx=5, pady=5)
 
-        position_frame = tk.Frame(xg_id_frame)
-        position_frame.pack()
-        x_label = tk.Label(position_frame, text="x轴")
+        self.position_frame = tk.Frame(xg_id_frame)
+        self.position_frame.pack()
+        x_label = tk.Label(self.position_frame, text="x轴")
         x_label.pack(side="left", padx=5, pady=5)
-        self.x_entry = tk.Entry(position_frame)
+        self.x_entry = tk.Entry(self.position_frame)
         self.x_entry.pack(side="left", padx=5, pady=5)
         self.x_entry.insert(0, 0)
-        y_label = tk.Label(position_frame, text="y轴")
+        y_label = tk.Label(self.position_frame, text="y轴")
         y_label.pack(side="left", padx=5, pady=5)
-        self.y_entry = tk.Entry(position_frame)
+        self.y_entry = tk.Entry(self.position_frame)
         self.y_entry.pack(side="left", padx=5, pady=5)
         self.y_entry.insert(0, 0)
         validate_cmd = self.register(validate_input)
         self.x_entry.config(validate="key", validatecommand=(validate_cmd, "%P"))
         self.y_entry.config(validate="key", validatecommand=(validate_cmd, "%P"))
-        self.desc_label = tk.Label(position_frame, text="")
+        self.desc_label = tk.Label(self.position_frame, text="")
         self.desc_label.pack(side="left", padx=5, pady=5)
 
-        button_frame = tk.Frame(xg_id_frame)
-        button_frame.pack()
-        self.show_button = tk.Button(button_frame, text="OCR获取坐标", command=self.show_position)
+        self.button_frame = tk.Frame(xg_id_frame)
+        self.button_frame.pack()
+        self.show_button = tk.Button(self.button_frame, text="OCR获取坐标", command=self.show_position)
         self.show_button.pack(side="left", padx=5, pady=5)
-        self.show_button = tk.Button(button_frame, text="手动生成坐标", command=self.build_position)
+        self.show_button = tk.Button(self.button_frame, text="手动生成坐标", command=self.build_position)
         self.show_button.pack(side="left", padx=5, pady=5)
-        self.set_capture_region_button = tk.Button(button_frame, text="设置截图范围",
-                                                   command=self.capture_region.show_set_capture_region)
-        self.set_capture_region_button.pack(side="left", padx=5, pady=5)
+
+        self.handle_farm_forget()
+
+    def toggle_setting_switch(self):
+        utils.config_util.update_config("setting", "show_out", str(self.show_out_var.get()))
+        utils.config_util.update_config("setting", "hide_input", str(self.hide_input_var.get()))
+        self.handle_farm_forget()
+
+    def handle_farm_forget(self):
+        if self.hide_input_var.get() == 1:
+            self.button_frame.pack_forget()
+            self.position_map_frame.pack_forget()
+            self.position_frame.pack_forget()
+        else:
+            self.button_frame.pack()
+            self.position_map_frame.pack()
+            self.position_frame.pack()
+        if self.show_out_var.get() == 1:
+            if self._capture_label is not None:
+                self._capture_label.pack_forget()
 
     def on_capture_region_set(self, region):
         self.region = region
         self.capture()
 
     def show_position(self):
-        if self.canvas is not None:
-            self.canvas.destroy()
         self.capture()
-        # xiao_gui_info = self.controller.show_position(image_to_base64(self._capture_label_image))
         xiao_gui_info = self.controller.show_position(self._capture_label_image)
         utils.map_util.set_position_area(xiao_gui_info)
         self.handle_xiao_gui_info(xiao_gui_info)
 
     def build_position(self):
-        if self.canvas is not None:
-            self.canvas.destroy()
         map_name = self.map_var.get()
         x = self.x_entry.get()
         y = self.y_entry.get()
@@ -164,11 +162,15 @@ class XiaoGuiView(tk.Frame):
             # 绘制坐标轴
             if xiao_gui_info.map_name is None or xiao_gui_info.map_name == '':
                 return
-            image = draw_coordinate(xiao_gui_info)
+            image = utils.map_util.draw_coordinate(xiao_gui_info)
             self.photo = ImageTk.PhotoImage(image)
-            self.canvas = tk.Canvas(self, width=image.width, height=image.height)
-            self.canvas.pack()
-            self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
+            if self.canvas is not None:
+                self.canvas.config(width=image.width, height=image.height)
+                self.canvas.itemconfig(self.canvas_image_item, image=self.photo)
+            else:
+                self.canvas = tk.Canvas(self, width=image.width, height=image.height)
+                self.canvas.pack()
+                self.canvas_image_item = self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
 
     def capture(self):
         self._capture_label_image = self.capture_region.capture()
@@ -176,4 +178,7 @@ class XiaoGuiView(tk.Frame):
         if self._capture_label is not None:
             self._capture_label.destroy()
         self._capture_label = tk.Label(self, image=self._capture_label_photo)
-        self._capture_label.pack()
+        if self.show_out_var.get() == 1:
+            self._capture_label.pack_forget()
+        else:
+            self._capture_label.pack()

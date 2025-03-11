@@ -1,6 +1,7 @@
 import tkinter as tk
 from PIL import ImageGrab
 
+
 class CaptureRegion:
     def __init__(self, master, callback):
         self.master = master
