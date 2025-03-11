@@ -1,5 +1,4 @@
-import cv2
-import numpy as np
+
 from PIL import ImageTk
 import ttkbootstrap as tk
 import logging
@@ -53,7 +52,7 @@ class XiaoGuiView(tk.Frame):
         self.show_out_var = tk.IntVar(value=int(utils.config_util.read_config("setting", "show_out")))
         self.show_out_switch = tk.Checkbutton(
             hot_key_frame,
-            text="显示截图结果",
+            text="隐藏截图结果",
             variable=self.show_out_var,
             onvalue=1,  # 打开时的值
             offvalue=0,  # 关闭时的值
@@ -71,6 +70,17 @@ class XiaoGuiView(tk.Frame):
             command=self.toggle_setting_switch,
         )
         self.hide_input_var_switch.pack(side="left", padx=5, pady=5)
+
+        self.colorblind_mode_var = tk.IntVar(value=int(utils.config_util.read_config("setting", "colorblind_mode")))
+        self.colorblind_mode_var_switch = tk.Checkbutton(
+            hot_key_frame,
+            text="色盲模式(对应游戏中的设置)",
+            variable=self.colorblind_mode_var,
+            onvalue=1,  # 打开时的值
+            offvalue=0,  # 关闭时的值
+            command=self.toggle_setting_switch,
+        )
+        self.colorblind_mode_var_switch.pack(side="left", padx=5, pady=5)
 
         self.set_capture_region_button = tk.Button(hot_key_frame, text="设置截图范围",
                                                    command=self.capture_region.show_set_capture_region)
@@ -113,6 +123,7 @@ class XiaoGuiView(tk.Frame):
     def toggle_setting_switch(self):
         utils.config_util.update_config("setting", "show_out", str(self.show_out_var.get()))
         utils.config_util.update_config("setting", "hide_input", str(self.hide_input_var.get()))
+        utils.config_util.update_config("setting", "colorblind_mode", str(self.colorblind_mode_var.get()))
         self.handle_farm_forget()
 
     def handle_farm_forget(self):
@@ -134,7 +145,7 @@ class XiaoGuiView(tk.Frame):
 
     def show_position(self):
         self.capture()
-        xiao_gui_info = self.controller.show_position(self._capture_label_image)
+        xiao_gui_info = self.controller.show_position(self._capture_label_image, self.colorblind_mode_var.get())
         utils.map_util.set_position_area(xiao_gui_info)
         self.handle_xiao_gui_info(xiao_gui_info)
 

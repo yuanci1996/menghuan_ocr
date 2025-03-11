@@ -199,8 +199,8 @@ def pyramid_template_matching(image,
     return matched_objects
 
 
-def get_map_image(image, color_type='yellow'):
-    if color_type == 'yellow':
+def get_map_image(image, colorblind_mode=1):
+    if colorblind_mode == 1:
         return cv2.inRange(cv2.cvtColor(image, cv2.COLOR_BGR2HSV),
                            np.array([25, 35, 150]),
                            np.array([35, 255, 255]))
