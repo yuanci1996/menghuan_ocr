@@ -1,6 +1,7 @@
 import logging
 from PIL import Image, ImageDraw
 
+from matplotlib import pyplot as plt
 from src.models.map import Map
 from src.models.xiaogui import XiaoGui
 import os
@@ -11,12 +12,13 @@ from . import config_util
 # pip install opencv-python --index-url https://mirrors.aliyun.com/pypi/simple/
 current_directory = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_directory, os.pardir))
-scales_str = config_util.read_config("map_pars", "scales")
-scales_config = [float(x) for x in scales_str.split(", ")]
+scales_config = [float(x) for x in config_util.read_config("map_pars", "scales").split(", ")]
 # scales_str = ", ".join(map(str, scales))
 scales_runtime = []
 scale_runtime = config_util.read_config("map_pars", "run_time_scale")
-print(f"初始化缩放比例：{scales_config}，固定比例: {scale_runtime}")
+if scale_runtime is not None and len(scale_runtime) > 0:
+    scales_config = [float(x) for x in scale_runtime.split(", ")]
+print(f"初始化缩放比例：{scales_config}")
 
 logger = logging.getLogger()
 map_infos = {'傲来国': Map(name="傲来国", names=["傲来国", "傲来", "来国", "傲", "来"], width=224, height=150,
@@ -46,6 +48,8 @@ map_infos = {'傲来国': Map(name="傲来国", names=["傲来国", "傲来", "�
 
 
 def set_position_area(xiao_gui_info: XiaoGui):
+    if xiao_gui_info is None:
+        return False
     if xiao_gui_info.map_name is not None:
         for key, map_obj in map_infos.items():
             names = map_obj.names
@@ -129,8 +133,16 @@ def draw_coordinate(xiao_gui_info: XiaoGui):
 
 
 def show_image(title, img):
-    cv2.imshow("Window", img)
-    cv2.setWindowTitle("Window", title)
+    cv2.imshow(title, img)
+    cv2.waitKey(0)
+
+
+def show_image_plt(title, img):
+    plt.title(title)
+    plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    plt.ion()
+    plt.axis('on')
+    plt.show()
 
 
 def pyramid_template_matching(image,
@@ -148,10 +160,9 @@ def pyramid_template_matching(image,
     :return: (matched_objects) 包含多个匹配位置、匹配尺度、匹配得分的信息
     """
     if scales is None:
-        if scale_runtime is not None and scale_runtime != '':
-            scales = [scale_runtime]
-        else:
-            scales = scales_config
+        global scales_config
+        print(scale_runtime)
+        scales = scales_config
     print(f"scales:{scales}")
     matched_objects = []
     matched_locations = np.empty((0, 2), dtype=int)  # Stores matched locations as a numpy array
@@ -193,6 +204,7 @@ def pyramid_template_matching(image,
 
         # 可选择性地添加停止条件，避免不必要的多次迭代
         if len(matched_objects) > 0:
+            global scales_runtime
             scales_runtime.append(scale)
             break
 
@@ -260,15 +272,17 @@ def get_map_location(image):
             print("匹配地图位置：", matched_objects)
             (x, y), (w, h), _, _ = matched_objects[0]
             map_location = [x, y, w, h, map_name]
+            logger.debug(f"匹配地图位置：{map_location}")
             break
 
     if map_location is None:
         print("未匹配到地图位置")
         logger.debug("未匹配到地图位置")
         return '', 0, 0
+    image[map_location[1]:map_location[1] + map_location[3] * 2, map_location[0]:map_location[0] + map_location[2]] = 0
     image = image[map_location[1]:map_location[1] + map_location[3] * 2, :]
     map_location[1] = 0
-    # show_image("新地图文字：", image)
+    # show_image("image：", image)
     num_locations = []
 
     for i in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'dh']:
@@ -280,10 +294,11 @@ def get_map_location(image):
             print(f"匹配{i}：", matched_objects)
             for matched_object in matched_objects:
                 (x, y), (w, h), _, _ = matched_object
-                if is_overlap((x, y, w, h), (map_location[0], map_location[1], map_location[2], map_location[3])):
-                    print(f"匹配到的{i}与地图范围存在重叠：", matched_object)
-                else:
+                if y > map_location[1] - 5 and y + h < map_location[1] + map_location[3] + 5:
                     num_locations.append((x, i))
+                else:
+                    print(f"{i}不在地图范围内")
+                    logger.debug(f"{i}不在地图范围内")
 
     print(num_locations)
     # 按 x 从小到大排序
@@ -307,11 +322,13 @@ def get_map_location(image):
     # 打印结果
     print(f"map_name: {map_location[4]}, x: {location_x}, y: {location_y}")
     logger.debug(f"map_name: {map_location[4]}, x: {location_x}, y: {location_y}")
+    global scales_runtime
     print("scales_runtime", scales_runtime)
-    if len(scales_runtime) > 100:
-        scale_runtime = np.mean(scales_runtime)
-        logger.debug(f"执行生成最终缩放参数 {scale_runtime}", scale_runtime)
-        config_util.update_config("map_pars", "run_time_scale", scale_runtime)
+    if len(scales_runtime) > 20:
+        global scales_config
+        scales_config = list(dict.fromkeys(scales_runtime))
+        scales_runtime.clear()
+        config_util.update_config("map_pars", "run_time_scale", ", ".join(map(str, scales_config)))
     return map_location[4], safe_int(location_x), safe_int(location_y)
 
 

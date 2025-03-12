@@ -19,14 +19,19 @@ class XiaoGuiController(tk.Frame):
         if self.run_ing:
             logger.debug("识别正在运行")
             print("识别正在运行")
-            return
+            return XiaoGui()
         self.run_ing = True
-        # 将 Pillow 图像转换为 NumPy 数组（RGB 格式）
-        rgb_image = np.array(image)
-        # 将 RGB 转换为 BGR（OpenCV 格式）
-        bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
-        map_key, x, y = utils.map_util.get_map_location(utils.map_util.get_map_image(bgr_image, colorblind_mode))
-        xiao_gui_info = XiaoGui(map_name=map_key, x=x, y=y)
-        logging.debug("最终信息 %s", xiao_gui_info)
-        self.run_ing = False
-        return xiao_gui_info
+        try:
+            # 将 Pillow 图像转换为 NumPy 数组（RGB 格式）
+            rgb_image = np.array(image)
+            # 将 RGB 转换为 BGR（OpenCV 格式）
+            bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
+            map_key, x, y = utils.map_util.get_map_location(utils.map_util.get_map_image(bgr_image, colorblind_mode))
+            xiao_gui_info = XiaoGui(map_name=map_key, x=x, y=y)
+            logging.debug("最终信息 %s", xiao_gui_info)
+            return xiao_gui_info
+        except Exception as e:
+            print("识别失败 %s", e)
+            logger.error("识别失败 %s", e)
+        finally:
+            self.run_ing = False

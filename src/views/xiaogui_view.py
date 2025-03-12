@@ -1,3 +1,4 @@
+import time
 
 from PIL import ImageTk
 import ttkbootstrap as tk
@@ -144,10 +145,15 @@ class XiaoGuiView(tk.Frame):
         self.capture()
 
     def show_position(self):
+        position_start_time = time.time()
+        logger.debug("执行匹配坐标开始")
         self.capture()
         xiao_gui_info = self.controller.show_position(self._capture_label_image, self.colorblind_mode_var.get())
         utils.map_util.set_position_area(xiao_gui_info)
+        position_end_time = time.time()
+        logger.debug(f"执行匹配坐标结束 花费时间 {position_end_time - position_start_time}")
         self.handle_xiao_gui_info(xiao_gui_info)
+        logger.debug(f"绘制坐标轴 花费时间 {time.time() - position_end_time}")
 
     def build_position(self):
         map_name = self.map_var.get()
@@ -184,6 +190,7 @@ class XiaoGuiView(tk.Frame):
                 self.canvas_image_item = self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
 
     def capture(self):
+        logger.debug("capture 进行截图")
         self._capture_label_image = self.capture_region.capture()
         self._capture_label_photo = ImageTk.PhotoImage(self._capture_label_image)
         if self._capture_label is not None:
