@@ -1,17 +1,8 @@
 # menghuan_ocr
 ##  一个便利的小鬼坐标预测工具
 
-# 离线ocr
-## https://github.com/hiroi-sora/PaddleOCR-json
-
 # 使用方式
-##  已去除答题，有需要的请参考 175dt 2025-03-11
-##  选择截图范围后点击按钮或者快捷键识别，坐标预测使用方式和答题一致，理论上无特殊设置，如果识别效果不佳换色弱模式或者调整截图范围，使用快捷键需要管理员模式启动
-![img.png](readme/img.png)
-![img_1.png](readme/img_1.png)
-![img_2.png](readme/img_2.png)
-![img_3.png](readme/img_3.png)
-![img_4.png](readme/img_4.png)
-
-# 打包方式 
-## pyinstaller --windowed --add-data "src/static;src/static" --add-data "src/libs;src/libs"  --uac-admin --name mh_ocr main.py
+##  1：在游戏设置中，选择字体为 "宋体"
+##  2：选择截图范围后点击按钮或者快捷键识别，使用快捷键需要管理员模式启动，
+##  3：请确保任务栏长的像以下，目前需要地图名称和坐标处于同一行，并且任务栏不能选择大字体模式
+![img.png](readme/task.jpg)

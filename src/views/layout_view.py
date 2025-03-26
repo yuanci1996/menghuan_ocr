@@ -1,6 +1,7 @@
 import tkinter as tk
 from src.views.log_view import LogView
 from src.views.xiaogui_view import XiaoGuiView
+from src.views.readme_view import ReadmeView
 
 
 class Layout(tk.Frame):
@@ -12,6 +13,7 @@ class Layout(tk.Frame):
         menu = tk.Menu(master, tearoff=0)
 
         menu.add_command(label="坐标", command=self.show_position)
+        menu.add_command(label="说明", command=self.show_readme)
         menu.add_command(label="日志", command=self.show_log)
 
         master.config(menu=menu)
@@ -30,6 +32,11 @@ class Layout(tk.Frame):
     def show_position(self):
         self.clear_frame()
         view = XiaoGuiView(self.master, self.main_frame)
+        view.pack(fill=tk.BOTH, expand=True)
+
+    def show_readme(self):
+        self.clear_frame()
+        view = ReadmeView(self.master, self.main_frame)
         view.pack(fill=tk.BOTH, expand=True)
 
     def show_log(self):
