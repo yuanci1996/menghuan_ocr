@@ -6,3 +6,4 @@ numpy~=1.24.4
 matplotlib~=3.7.5
 pywinctl~=0.4
 opencv-python~=4.11.0.86
+mss~=9.0.2
