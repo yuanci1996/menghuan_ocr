@@ -143,3 +143,4 @@ cython_debug/
 *.iws
 *.iml
 *.ipr
+.python-version
