@@ -129,7 +129,14 @@ def draw_coordinate(xiao_gui_info: XiaoGui):
                 # 第四象限：右下
                 position_area_draw.rectangle((x, y, x + side, y + side), fill=xiao_gui_info.map_info.area_color)
 
-    return Image.alpha_composite(xiao_gui_info.map_info.background_image, position_area_image)
+    image = Image.alpha_composite(xiao_gui_info.map_info.background_image, position_area_image)
+    scale = config_util.read_config("map_pars", "composite_image_scale")
+    if (scale is not None):
+        image_bgr = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
+        image_rgb = cv2.cvtColor(cv2.resize(image_bgr, None, fx=float(scale), fy=float(scale), interpolation=cv2.INTER_CUBIC), cv2.COLOR_BGR2RGB)
+        return Image.fromarray(image_rgb)
+    else:
+        return image
 
 
 def show_image(title, img):
